@@ -1,0 +1,10 @@
+functia: prelucrare_input:
+
+functia face totodata si citirea si prelucrarea inputului
+  
+returneaza un pointer la structura arg in care va pune inputul citit din shell 
+despartit in cuvinte si grupat intre numele functiei (func) si argumentele care sunt date (argv)
+  
+argumentele din structura->argv sunt puse incepand cu pozitia 0
+  
+functia elimina terminatorii de sir "\n" atat din func cat si din argv
