@@ -5,8 +5,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdbool.h>
 
 //extern int errno;//poate mai tarziu ca sa lansam erori
+
+#define GIVECHAR 1
+#define NOGIVECHAR 0
 
 struct arg{
 	char* func;
@@ -14,6 +20,37 @@ struct arg{
     int nflags;
 };
 
+struct ist{
+    struct arg* _arg;
+    struct ist* next;
+    struct ist* prev;
+}*first, *last;
+
+
+char* printeaza_arg(struct arg* v, bool retval)//daca retval e 1 -> imi returneaza si stringul, daca nu, nu il returneaza
+{
+    printf("%s ", v->func);
+    char* command;
+    if(retval == 1)
+    {
+        command = malloc(sizeof(char) * 100);//mai este nevoie de un free in afara functiei pentru asta
+        strncat(command, v->func, 20);
+        strcat(command, " ");
+    }
+    
+    for(int i = 0; i < v->nflags; i++)
+    {
+        printf("%s ", v->argv[i]);
+        if(retval == 1)
+        {
+            strncat(command, v->argv[i], 10);
+            strcat(command, " ");
+        }
+    }
+    if(retval == 1)
+        return command;
+    return NULL;
+}//printeaza comanda dar o si returneaza sub forma de string pentru a o putea rula din nou din istoric
 
 struct arg* prelucrare_input()
 {
@@ -50,6 +87,18 @@ struct arg* prelucrare_input()
 	return a;
 }
 
+int arata_istoric()
+{
+    struct ist* current = first;
+    while(current->next != NULL)
+    {
+        printeaza_arg(current->_arg, NOGIVECHAR);
+        current = current->next;
+    }
+    printf("\n");
+}
+
+
 int apelare_functie(struct arg* v)
 {
     //return -1 daca ceva nu merge bine
@@ -77,32 +126,94 @@ int apelare_functie(struct arg* v)
     if(!execve(command, argv, NULL))
     {
         printf("A fost rulata o functie din linux\n"); // aici este ok, nu mai trebuie schimbat nimic
-        return 0;
     }
     else
     {
-        printf("Trebuie rulata o alta functie\n"); // -> punem alt path si alte argumente
+        //nu ne uitam in /usr/bin -> ne uitam in functiile locale
+
+        if(strcmp(v->func, "istoric") == 0)
+        {
+            arata_istoric();
+            return 0;
+        }
+        else if(strcmp(v->func, "exit") == 0) // NU MERGE BINE LOGICA DE EXIT
+        {
+            return -1;
+        }
+        
+        printf("Trebuie rulata o alta functie\n"); // -> implementam noi functionalitati
     }
 
 
+    //eliberare memorie
+    free(command);
+    for(int i = 0; i <= v->nflags; i++)
+    {
+        free(argv[i]);
+    }
+    free(argv);
 
     return 0;
 }
 
+
+
+int adauga_istoric(struct arg* v)
+{
+    struct ist* new_ist = malloc(sizeof(struct ist));
+    new_ist->_arg = v;
+    if(first == NULL && last == NULL)
+    {
+        first = new_ist;
+        last = new_ist;
+        return 0;
+    }
+    last->next = new_ist;
+    new_ist->prev = last;
+    last = new_ist;
+    return 0;
+}
+
+int sterge_istoric()
+{
+    struct ist* current = first;
+    while(current->next != NULL)
+    {
+        struct ist* aux = current;
+        current = current->next;
+        free(aux->_arg);
+        free(aux);
+    }
+    free(current->_arg);
+    free(current);
+}
+
 int main()
 {
-	struct arg * v = malloc(sizeof(char)*100);	
-	while(1)
-	{	
+
+    bool run = true;
+	while(run)
+	{		
+
+        struct arg * v = malloc(sizeof(struct arg));
         printf("#cel_mai_pacanea_shell# ");	
 		v = prelucrare_input();
+        adauga_istoric(v);
         pid_t pid = fork();
-        if(pid == 0)
-            apelare_functie(v);
-        wait(NULL); // este necesar sa asteptam altfel are comportament ciudat, precum lag in nano
+        if(pid < 0)
+            return errno;
+        else if (pid == 0)
+        {
+            if(apelare_functie(v) == -1)
+                run = false;
+            return 0;
+        }
+        else{
+            wait(NULL);        
+        }
 	}
     //free(v);
-
+    sterge_istoric();
 	return 0;
 }
 
