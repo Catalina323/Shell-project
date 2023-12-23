@@ -8,3 +8,22 @@ despartit in cuvinte si grupat intre numele functiei (func) si argumentele care 
 argumentele din structura->argv sunt puse incepand cu pozitia 0
   
 functia elimina terminatorii de sir "\n" atat din func cat si din argv
+
+functia: printeaza_arg(struct arg* v, bool retval)
+
+primeste un argument sub forma structurii aferente si un flag daca sa creeze un sir de caractere si sa l returneze sau nu. Este folositor sa l creeze in cazul
+in care vrem sa dam din nou comanda la rulat din istoric. Flagul se poate seta cu GIVECHAR(1) sau NOGIVECHAR(0)
+
+functia: arata_istoric()
+
+arata istoricul parcurgand lista, arata pana la penultima comanda, deoarece ultima ar fi chiar comanda de istoric
+
+functia: adauga_istoric(struct arg* v)
+
+primeste argumentul sub forma structurii si adauga un nou nod in lista de elemente din istoric
+
+functia: apelare_functie(struct arg* v)
+
+primeste argumentul si cauta prima data functia daca exista deja implementata in /usr/bin si o ruleaza cu execve
+daca nu gaseste functia acolo, cauta daca este implementata de noi(precum cea cu istoric)
+
