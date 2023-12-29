@@ -21,7 +21,7 @@ struct arg{
 };
 
 struct ist{
-    struct arg* _arg;
+    char* comanda;
     struct ist* next;
     struct ist* prev;
 }*first, *last;
@@ -92,8 +92,12 @@ int arata_istoric()
     struct ist* current = first;
     while(current->next != NULL)
     {
-        printeaza_arg(current->_arg, NOGIVECHAR);
+        printf("%s ", current->comanda);
         current = current->next;
+    }
+    if(current != NULL)
+    {
+        printf("%s", current->comanda);
     }
     printf("\n");
 }
@@ -158,10 +162,11 @@ int apelare_functie(struct arg* v)
 
 
 
-int adauga_istoric(struct arg* v)
+int adauga_istoric(char* v)
 {
     struct ist* new_ist = malloc(sizeof(struct ist));
-    new_ist->_arg = v;
+    new_ist->comanda = malloc(sizeof(char)*100);
+    strncpy(new_ist->comanda, v, 100);
     if(first == NULL && last == NULL)
     {
         first = new_ist;
@@ -181,10 +186,10 @@ int sterge_istoric()
     {
         struct ist* aux = current;
         current = current->next;
-        free(aux->_arg);
+        free(aux->comanda);
         free(aux);
     }
-    free(current->_arg);
+    free(current->comanda);
     free(current);
 }
 
@@ -198,7 +203,6 @@ int main()
         struct arg * v = malloc(sizeof(struct arg));
         printf("#cel_mai_pacanea_shell# ");	
 		v = prelucrare_input();
-        adauga_istoric(v);
         pid_t pid = fork();
         if(pid < 0)
             return errno;
