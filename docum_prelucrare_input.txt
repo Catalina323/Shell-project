@@ -18,9 +18,9 @@ functia: arata_istoric()
 
 arata istoricul parcurgand lista, arata pana la penultima comanda, deoarece ultima ar fi chiar comanda de istoric
 
-functia: adauga_istoric(struct arg* v)
+functia: adauga_istoric(char* v)
 
-primeste argumentul sub forma structurii si adauga un nou nod in lista de elemente din istoric
+primeste argumentul sub forma unui sir de caractere si adauga un nou nod in lista de elemente din istoric
 
 functia: apelare_functie(struct arg* v)
 
