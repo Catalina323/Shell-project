@@ -17,7 +17,12 @@
 struct arg{
 	char* func;
 	char ** argv;
-    int nflags;
+	
+	int nflags;
+	bool in;
+	bool out;
+	char* file;
+	
 };
 
 struct ist{
@@ -54,6 +59,7 @@ char* printeaza_arg(struct arg* v, bool retval)//daca retval e 1 -> imi returnea
 
 struct arg* prelucrare_input()
 {
+	bool add_file_name = false;
 	size_t n = 0;
 	char * buf = NULL;
 	char * token;
@@ -61,7 +67,7 @@ struct arg* prelucrare_input()
 	int i = 0;
 	struct arg * a = malloc(sizeof(struct arg));
 	a->argv = malloc(sizeof(char)*100);
-    a->nflags = 0;
+    	a->nflags = 0;
 	
 	//citirea argumentelor:
 	
@@ -72,18 +78,55 @@ struct arg* prelucrare_input()
 	
 	//prelucrarea argumentelor
 	
+	a->in = false;
+	a->out = false;
+	a->file = NULL;
+	
 	token = strtok(input, delim);
 	a->func = token;
 	
 	while(token != NULL)
 	{ 
 		token = strtok(NULL, delim);
-		a->argv[a->nflags++] = token;
-		//a->nflags++;
+		
+		if(token == NULL)
+		{
+			a->argv[a->nflags++] = token;
+			continue;
+		
+		}
+	
+		if(strcmp(token, "<") == 0)
+		{
+			a->in = true;
+			add_file_name = true;
+			continue;
+		}
+		
+		if(strcmp(token, ">") == 0)
+		{
+			a->out = true;
+			add_file_name = true;
+			continue;
+		}
+		
+		if(add_file_name)
+		{
+			a->file = token;
+			add_file_name = false;
+		
+		}
+		else{
+			
+			a->argv[a->nflags++] = token;
+		}
+		
 	}
-    a->nflags--;
+	
+    	a->nflags--;
 	free(buf);
 	a->func = strtok(a->func, "\n");
+	
 	return a;
 }
 
@@ -126,6 +169,40 @@ int apelare_functie(struct arg* v)
             strcat(argv[i + 1], " ");     
     }
     argv[v->nflags + 1] = NULL;
+    
+    //scuze dar chiar trebuie modificata (pun ce am intre stelute)
+    //***************************
+    
+    //printf("6 \n");
+    
+    if(v->in || v->out)
+    {
+    	//printf("7 \n");
+    
+	    int file = open(v->file, O_WRONLY | O_CREAT, S_IRWXU);
+	    if(file < 0)
+	    {
+	    	printf("Eroare la deschiderea fisierului \n");
+	    	return 0;
+	    }
+	    
+	    if(v->in)
+	    {
+	    	dup2(file, STDIN_FILENO);	
+	    	close(file);	
+
+	    }
+	    
+	    if(v->out)
+	    {
+	    	dup2(file, STDOUT_FILENO);
+	    	close(file);
+	    }
+    }
+    
+    
+    //****************************
+    
 
     if(!execve(command, argv, NULL))
     {
