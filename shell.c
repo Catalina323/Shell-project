@@ -14,6 +14,7 @@
 #define GIVECHAR 1
 #define NOGIVECHAR 0
 
+
 struct arg{
 	char* func;
 	char ** argv;
@@ -75,7 +76,11 @@ struct arg* prelucrare_input()
 	
 	char * input = malloc(sizeof(char) * strlen(buf));
 	strcpy(input, buf);
-	
+
+    //SCHIMBAT DE FABI
+    adauga_istoric(buf); //adaugam inputul la istoric;
+    ///********\\\	
+
 	//prelucrarea argumentelor
 	
 	a->in = false;
@@ -123,7 +128,7 @@ struct arg* prelucrare_input()
 		
 	}
 	
-    	a->nflags--;
+    a->nflags--;
 	free(buf);
 	a->func = strtok(a->func, "\n");
 	
@@ -221,6 +226,17 @@ int apelare_functie(struct arg* v)
         {
             return -1;
         }
+        else if(strcmp(v->func, "killpid") == 0)
+        {
+            if(!kill(atoi(v->argv[0]), 1))
+            {
+                printf("Procesul a fost omorat cu succes\n");
+            }
+            else{
+                printf("Procesul nu a putut fi omorat\n");        
+            }
+            return -1;
+        }
         
         printf("Trebuie rulata o alta functie\n"); // -> implementam noi functionalitati
     }
@@ -244,6 +260,7 @@ int adauga_istoric(char* v)
     struct ist* new_ist = malloc(sizeof(struct ist));
     new_ist->comanda = malloc(sizeof(char)*100);
     strncpy(new_ist->comanda, v, 100);
+    new_ist->comanda[strcspn(new_ist->comanda, "\n")] = 0;//elimin '\n';
     if(first == NULL && last == NULL)
     {
         first = new_ist;

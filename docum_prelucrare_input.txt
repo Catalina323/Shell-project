@@ -27,3 +27,12 @@ functia: apelare_functie(struct arg* v)
 primeste argumentul si cauta prima data functia daca exista deja implementata in /usr/bin si o ruleaza cu execve
 daca nu gaseste functia acolo, cauta daca este implementata de noi(precum cea cu istoric)
 
+
+
+
+
+
+PROBLEMA:
+1) compilam a.c: gcc a.c -o b
+2) rulam in terminalul normal ./b < input.txt (da null)
+3) rulam in shell-ul nostru ./b < input.txt (da comanda necunoscuta)
