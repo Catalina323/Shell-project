@@ -18,11 +18,16 @@
 struct arg{
 	char* func;
 	char ** argv;
-	
 	int nflags;
+	
 	bool in;
 	bool out;
 	char* file;
+	
+	bool pipe;
+	char* func2;
+	char ** argv2;
+	int nflags2;
 	
 };
 
@@ -61,6 +66,7 @@ char* printeaza_arg(struct arg* v, bool retval)//daca retval e 1 -> imi returnea
 struct arg* prelucrare_input()
 {
 	bool add_file_name = false;
+	bool add_func2 = false;
 	size_t n = 0;
 	char * buf = NULL;
 	char * token;
@@ -68,7 +74,10 @@ struct arg* prelucrare_input()
 	int i = 0;
 	struct arg * a = malloc(sizeof(struct arg));
 	a->argv = malloc(sizeof(char)*100);
+    	a->argv2 = malloc(sizeof(char)*100);
     	a->nflags = 0;
+    	a->nflags2 = 0;
+    	
 	
 	//citirea argumentelor:
 	
@@ -76,16 +85,17 @@ struct arg* prelucrare_input()
 	
 	char * input = malloc(sizeof(char) * strlen(buf));
 	strcpy(input, buf);
-
-    //SCHIMBAT DE FABI
-    adauga_istoric(buf); //adaugam inputul la istoric;
-    ///********\\\	
-
+	
+	//SCHIMBAT DE FABI
+	adauga_istoric(buf); //adaugam inputul la istoric;
+	///********\\\	
+	
 	//prelucrarea argumentelor
 	
 	a->in = false;
 	a->out = false;
 	a->file = NULL;
+	a->pipe = false;
 	
 	token = strtok(input, delim);
 	a->func = token;
@@ -97,10 +107,12 @@ struct arg* prelucrare_input()
 		if(token == NULL)
 		{
 			a->argv[a->nflags++] = token;
+			a->argv2[a->nflags2++] = token;
 			continue;
 		
 		}
-	
+		
+		
 		if(strcmp(token, "<") == 0)
 		{
 			a->in = true;
@@ -115,22 +127,49 @@ struct arg* prelucrare_input()
 			continue;
 		}
 		
+		if(strcmp(token, "|") == 0)
+		{
+			
+			a->pipe = true;
+			add_func2 = true;
+			continue;
+		
+		}
+		
 		if(add_file_name)
 		{
 			a->file = token;
 			add_file_name = false;
 		
 		}
-		else{
-			
-			a->argv[a->nflags++] = token;
+		else
+		{
+			if(a->pipe)
+			{
+				if(add_func2)
+				{
+					a->func2 = token;
+					add_func2 = false;
+				}
+				else{
+					a->argv2[a->nflags2++] = token;
+				}
+				
+			}
+			else{
+				a->argv[a->nflags++] = token;
+			}
+				
 		}
 		
 	}
 	
-    a->nflags--;
+    	a->nflags--;
+    	a->nflags2--;
 	free(buf);
 	a->func = strtok(a->func, "\n");
+	a->func2 = strtok(a->func2, "\n");
+	
 	
 	return a;
 }
@@ -289,33 +328,90 @@ int sterge_istoric()
 
 int main()
 {
-
-    bool run = true;
+	bool run = true;
 	while(run)
 	{		
 
         struct arg * v = malloc(sizeof(struct arg));
         printf("#cel_mai_pacanea_shell# ");	
-		v = prelucrare_input();
-        pid_t pid = fork();
-        if(pid < 0)
-            return errno;
-        else if (pid == 0)
+	
+	v = prelucrare_input();
+        if(!v->pipe)
         {
-            if(apelare_functie(v) == -1)
-                run = false;
-            return 0;
-        }
-        else{
-            wait(NULL);        
-        }
+        	//executia normala fara pipe
+        
+		pid_t pid = fork();
+		if(pid < 0)
+		    return errno;
+		else if (pid == 0)
+		{
+		    if(apelare_functie(v) == -1)
+		        run = false;
+		    return 0;
+		}
+		else{
+		    wait(NULL);        
+		}
 	}
-    //free(v);
+	else{
+		//executia cu pipe
+	
+		int fd[2];
+		if(pipe(fd) == -1)
+		{
+			return 1;
+		}
+		
+		int pid1 = fork();
+		if(pid1 < 0)
+		{
+			return errno;
+		}
+		else if(pid1 == 0)
+		{
+			dup2(fd[1], STDOUT_FILENO);
+			close(fd[0]);
+			close(fd[1]);
+			if(apelare_functie(v) == -1)
+		        	run = false;
+		    	return 0;
+			
+		}
+		
+		v->func = v->func2;
+		v->argv = v->argv2;
+		v->nflags = v->nflags2;
+		
+		int pid2 = fork();
+		
+		if(pid2 < 0)
+			return errno;
+		
+		if(pid2 == 0)
+		{
+			dup2(fd[0], STDIN_FILENO);
+			close(fd[0]);
+			close(fd[1]);
+			if(apelare_functie(v) == -1)
+		        	run = false;
+		    	return 0;
+			
+		}
+		
+		close(fd[0]);
+		close(fd[1]);
+	
+		waitpid(pid1, NULL, 0);
+		waitpid(pid2, NULL, 0);
+	
+	}
+	
+	
+	}
+    
     sterge_istoric();
 	return 0;
+    
 }
 
-//echo "Salut" | fis.txt > ./a.exe > rezultat.txt
-//((echo "Salut" | fis.txt) > ./a.exe ) > rezultat.txt)
-//a > ./a.exe
 //>Salut
