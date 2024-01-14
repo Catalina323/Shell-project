@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
-
+#include <sys/mman.h>
 //extern int errno;//poate mai tarziu ca sa lansam erori
 
 #define GIVECHAR 1
@@ -247,7 +247,10 @@ int apelare_functie(struct arg* v)
     
     //****************************
     
-
+	if(strcmp(v->func, "exit") == 0) // NU MERGE BINE LOGICA DE EXIT //acum merge
+        {
+            return -1;
+        }
     if(!execve(command, argv, NULL))
     {
         printf("A fost rulata o functie din linux\n"); // aici este ok, nu mai trebuie schimbat nimic
@@ -255,15 +258,10 @@ int apelare_functie(struct arg* v)
     else
     {
         //nu ne uitam in /usr/bin -> ne uitam in functiile locale
-
         if(strcmp(v->func, "istoric") == 0)
         {
             arata_istoric();
             return 0;
-        }
-        else if(strcmp(v->func, "exit") == 0) // NU MERGE BINE LOGICA DE EXIT
-        {
-            return -1;
         }
         else if(strcmp(v->func, "killpid") == 0)
         {
@@ -325,11 +323,13 @@ int sterge_istoric()
     free(current->comanda);
     free(current);
 }
-
+static bool *run;
 int main()
 {
-	bool run = true;
-	while(run)
+	run = mmap(NULL, sizeof *run, PROT_READ | PROT_WRITE, 
+                    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    	*run = true;
+	while(*run)
 	{		
 
         struct arg * v = malloc(sizeof(struct arg));
@@ -346,7 +346,7 @@ int main()
 		else if (pid == 0)
 		{
 		    if(apelare_functie(v) == -1)
-		        run = false;
+		        *run = false;
 		    return 0;
 		}
 		else{
@@ -373,7 +373,7 @@ int main()
 			close(fd[0]);
 			close(fd[1]);
 			if(apelare_functie(v) == -1)
-		        	run = false;
+		        	*run = false;
 		    	return 0;
 			
 		}
@@ -393,7 +393,7 @@ int main()
 			close(fd[0]);
 			close(fd[1]);
 			if(apelare_functie(v) == -1)
-		        	run = false;
+		        	*run = false;
 		    	return 0;
 			
 		}
@@ -408,7 +408,7 @@ int main()
 	
 	
 	}
-    
+    munmap(run, sizeof *run);
     sterge_istoric();
 	return 0;
     
